@@ -16,7 +16,7 @@ class BarcaAmplada(Barca):
         OBERT = [estat_inicial]
         TANCAT = []
 
-        while OBERT:
+        while OBERT is not None:
             actual = OBERT.pop()
             if Estat.es_meta(actual):
                 break
