@@ -39,6 +39,12 @@ class Aspirador(agent.Agent):
 class AspiradorReflex(Aspirador):
     def actua(self, percep: entorn.Percepcio) -> entorn.Accio:
         """ IMPLEMENTAR """
+        if percep[ClauPercepcio.ESTAT] is EstatHabitacio.BRUT:
+            return AccionsAspirador.ASPIRA
+        elif percep[ClauPercepcio.LOC] is Localitzacio.HABITACIO_ESQ:
+            return AccionsAspirador.DRETA
+        elif percep[ClauPercepcio.LOC] is Localitzacio.HABITACIO_DRET:
+            return AccionsAspirador.ESQUERRA
         pass
 
 
@@ -59,4 +65,19 @@ class AspiradorTaula(Aspirador):
 class AspiradorMemoria(Aspirador):
     def actua(self, percep: entorn.Percepcio) -> entorn.Accio:
         """ IMPLEMENTAR """
-        pass
+        accio = None
+
+        mem = self.get_memoria(1)
+
+        if percep[ClauPercepcio.ESTAT] is EstatHabitacio.BRUT:
+            accio = AccionsAspirador.ASPIRA
+        elif mem is not None and (mem[ClauPercepcio.ESTAT] is EstatHabitacio.NET):
+            accio = AccionsAspirador.ATURA
+        elif percep[ClauPercepcio.LOC] is Localitzacio.HABITACIO_ESQ:
+            accio = AccionsAspirador.DRETA
+        elif percep[ClauPercepcio.LOC] is Localitzacio.HABITACIO_DRET:
+            accio = AccionsAspirador.ESQUERRA
+
+        self.set_memoria(percep)
+
+        return accio

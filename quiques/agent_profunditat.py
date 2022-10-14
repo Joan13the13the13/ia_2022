@@ -15,7 +15,5 @@ class BarcaProfunditat(Barca):
         self.__tancats = None
         self.__accions = None
 
-    def actua(
-            self, percep: entorn.Percepcio
-    ) -> entorn.Accio | tuple[entorn.Accio, object]:
+    def actua(self, percep: entorn.Percepcio) -> entorn.Accio | tuple[entorn.Accio, object]:
         pass
