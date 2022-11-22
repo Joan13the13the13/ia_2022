@@ -1,8 +1,9 @@
 from ia_2022 import entorn
 from practica1 import joc
 from practica1.entorn import ClauPercepcio, AccionsRana, Direccio
-
+from queue import PriorityQueue
 """
+
 ClauPercepcio:
     POSICIO = 0
     OLOR = 1
@@ -44,10 +45,9 @@ MÈTODES:
                8. generaFills:      mètode per a generar els fills corresponents.
                9. getPosAg:         mètode per a obtenir la posició d'un agent.
 """
-
 class Estat:
     """
-    Constructor que rep per paràmetres la posició de la pizza,agent, parets i opcionalment pes,pare.
+        Constructor que rep per paràmetres la posició de la pizza,agent, parets i opcionalment pes,pare.
     """
     def __init__(self, posPizza, posAgent, parets,nom, pes=0, pare=None):
         self.__posicioAg = posAgent
@@ -62,7 +62,6 @@ class Estat:
 
     def __lt__(self, other):
         return False
-
     def __hash__(self):
         return hash(tuple(self.__posicioAg))
 
@@ -73,7 +72,15 @@ class Estat:
     @pare.setter
     def pare(self, value):
         self.__pare = value
-
+    """
+    Mètode per a calcular l'heurística d'un estat.
+    Quan més pròxim de la solució millor heurística tendrà un estat.
+    """
+    def calculaHeuristica(self):
+        sum = 0
+        for i in range(2):
+            sum += abs(self.__posPizza[0] - self.__posicioAg[self.__nom][i])
+        return self.__pes + sum
     """
     Mètode que té la funció de mirar si un estat és vàlid.
     És a dir, que l'agent no està fora del mapa ni en una paret.
@@ -83,23 +90,23 @@ class Estat:
         for p in self.__parets:
             if((self.__posicioAg[self.__nom][0]==p[0])and(self.__posicioAg[self.__nom][1]==p[1])):
                 return False
-        # mirar si està dins el mapa
+        #mirar si està dins el mapa
         return (self.__posicioAg[self.__nom][0] <= 7) and (self.__posicioAg[self.__nom][0] >= 0) \
                and (self.__posicioAg[self.__nom][1] <= 7) and (self.__posicioAg[self.__nom][1] >= 0)
 
     """
-    Mètode per evaluar si l'agent ha arribat a la meta.
+        Mètode per evaluar si l'agent ha arribat a la meta.
     """
     def es_meta(self):
         return (self.__posicioAg[self.__nom][0] == self.__posPizza[0]) and (
                     self.__posicioAg[self.__nom][1] == self.__posPizza[1])
+
     """
-    Mètode per a obtenir la posició d'un agent.
-    Es retorna en format de diccionari.
+        Mètode per a obtenir la posició d'un agent.
+        Es retorna en format de diccionari.
     """
     def getPosAg(self):
         return self.__posicioAg
-
     """
     Mètode que s'encarrega de generar els fills iterant amb els valors d'un diccionari, on els quals coincideixen amb els
     strings dels possibles valors de la Direcció. D'aquesta manera, podem reutilitzar l'índex per passar-lo per paràmetre
@@ -123,7 +130,7 @@ class Estat:
                 fills.append(actual)
 
         """
-        Cas 2: Moviments de desplaçament de 2 caselles en 2 caselles.
+        Cas 2: Moviments de desplaçament de 2 caselles en caselles
         """
         movs = {"ESQUERRE": (-2, 0), "DRETA": (+2, 0), "DALT": (0, -2), "BAIX": (0, +2)}
         for i, m in enumerate(movs.values()):
@@ -139,8 +146,7 @@ class Estat:
 """
 CLASSE RANA:
 ATRIBUTS:
-    ·Classe:   1. P:       nombre invidividus població inicial
-               2. solucio: boolean que determina si s'ha trobat la solució
+    ·Classe:   No hi ha atributs de classe.
 
     ·Objecte:  1. self.__accions: array per anar emmagatzemant les accions a realitzar
                                   obtingudes en el mètode cerca.
@@ -158,7 +164,6 @@ MÈTODES:
 
 """
 class Rana(joc.Rana):
-
     def __init__(self, *args, **kwargs):
         super(Rana, self).__init__(*args, **kwargs)
         self.__closed = None
@@ -173,25 +178,23 @@ class Rana(joc.Rana):
     Es van generant fills de manera vàlida fins que es trobi una solucio.
     """
     def _cerca(self, estat: Estat):
-        self.__oberts = []    #array per guardar estats
-        self.__closed = set() #conjunt no ordenat d'elements que guarda els estats ja explorats
+        self.__oberts = PriorityQueue()
+        self.__closed = set()
 
-        self.__oberts.append(estat) #afegim estat inicial a oberts
+        self.__oberts.put((estat.calculaHeuristica(), estat))
         actual = None
 
-        """
-        Mentre quedin elements per recórrer o no es trobi solució.
-        """
-        while len(self.__oberts)>0:
-            # si un retorn no t'interessa li posam _
-            actual = self.__oberts[0]
-            self.__oberts=self.__oberts[1:]
+        while not self.__oberts.empty():
+            # si un retorn no t'interessa li posam _S
+            _, actual = self.__oberts.get()
+            if actual in self.__closed:
+                continue
 
-            if actual in self.__closed:#si estat ja explorat continua
+            if actual in self.__closed:
                 continue
 
             if not actual.es_valid():
-                self.__closed.append(actual)
+                self.__closed.add(actual)
                 continue
 
             estats_fills = actual.generaFills()
@@ -200,44 +203,41 @@ class Rana(joc.Rana):
                 break
 
             for estat_f in estats_fills:
-                self.__oberts.append(estat_f)
+                self.__oberts.put((estat_f.calculaHeuristica(),estat_f))
 
             self.__closed.add(actual)
-
-        if actual is None:#gestió d'errors
-            raise ValueError("Error impossible")
 
         if actual.es_meta():
             accions = []
             iterador = actual
 
-            #iteram des de l'estat solució fins l'arrel de l'arbre per trobar el cami d'accions a realitzar
             while iterador.pare is not None:
                 pare, accio = iterador.pare
                 accions.append(accio)
                 iterador = pare
+
             self.__accions = accions
 
     """
-    Mètode actua que primerament crida a cerca si no té les accions definides en l'atribut self.__accions.
-    Després va extreguent les operacions a realitzar una per una. Si es tracta d'un bot, assigna dos torns d'espera.
+        Mètode actua que primerament crida a cerca si no té les accions definides en l'atribut self.__accions.
+        Després va extreguent les operacions a realitzar una per una. Si es tracta d'un bot, assigna dos torns d'espera.
     """
     def actua(
             self, percep: entorn.Percepcio
     ) -> entorn.Accio | tuple[entorn.Accio, object]:
         estat = Estat(percep[ClauPercepcio.OLOR],percep[ClauPercepcio.POSICIO],percep[ClauPercepcio.PARETS],self.nom)
 
-        if self.__accions is None:
+        if self.__accions is None: #si no s'ha trobat solució
             self._cerca(estat=estat)
 
-        if self.__accions:
+        if self.__accions: #si s'ha trobat solució
             if(self.__jumping>0): #esta botant
                 self.__jumping-=1
                 return AccionsRana.ESPERAR
             else:
                 acc = self.__accions.pop()
                 if(acc[0]==AccionsRana.BOTAR):
-                    self.__jumping=2
+                    self.__jumping=2            #assigna 2 turns d'espera
                 return acc[0],acc[1]
         else:
-            return AccionsRana.ESPERAR
+            return AccionsRana.ESPERAR          #si ha acabat espera
